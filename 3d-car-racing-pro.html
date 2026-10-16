@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>3D Car Racing Pro</title>
+<style>
+:root{--glass:rgba(8,15,25,.78);--line:rgba(255,255,255,.28)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#83c9ee;font-family:system-ui,Arial,sans-serif;touch-action:none}
+canvas{display:block;width:100%;height:100%}
+#hud{position:absolute;top:10px;left:10px;z-index:3;color:#fff;background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:10px 13px;font-weight:800;font-size:14px;line-height:1.65;text-shadow:0 1px 2px #000;backdrop-filter:blur(6px);min-width:125px}
+#nitroWrap{height:7px;background:#364152;border-radius:8px;overflow:hidden;margin-top:3px;width:100%}#nitroBar{height:100%;width:100%;background:linear-gradient(90deg,#00d4ff,#9dfffc)}
+#topButtons{position:absolute;right:10px;top:10px;display:flex;gap:7px;z-index:4}button{font:inherit;font-weight:800;color:#fff;background:rgba(10,18,30,.82);border:1px solid var(--line);border-radius:12px;padding:10px 13px;box-shadow:0 3px 12px #0002;touch-action:none}
+#controls{position:absolute;left:0;right:0;bottom:max(12px,env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:flex-end;padding:0 13px;z-index:3;gap:8px}
+.pad{display:flex;gap:8px;align-items:center}.control{width:61px;height:59px;font-size:24px;background:rgba(8,15,25,.72);border-radius:17px}.pedals{display:flex;gap:8px;align-items:flex-end}.pedals button{width:76px;height:58px;font-size:12px}.pedals .nitro{height:69px;background:linear-gradient(145deg,#0076ff,#00c9ff);border-color:#a4f2ff}
+#overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(3,10,20,.46);z-index:6;padding:18px;overflow:auto}
+.panel{width:min(440px,100%);max-height:92%;overflow:auto;background:rgba(9,18,31,.94);color:#fff;border:1px solid #ffffff35;border-radius:22px;padding:20px;box-shadow:0 16px 50px #0006;text-align:center;backdrop-filter:blur(10px)}
+.panel h1{font-size:25px;margin:0 0 5px}.sub{opacity:.8;font-size:13px;margin:0 0 15px}.cars{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 17px}.carOption{padding:10px 4px;border:1px solid #ffffff25;border-radius:12px;background:#ffffff0b}.carOption.selected{border:2px solid #00d8ff;background:#00cfff20}.swatch{width:38px;height:23px;border-radius:7px;margin:0 auto 7px;box-shadow:inset 0 -4px 0 #0003}.carOption small{font-size:11px}.primary{width:100%;padding:14px;background:linear-gradient(100deg,#0077ff,#00bfe9);border:0;font-size:16px}.secondary{margin-top:8px;width:100%}.hidden{display:none!important}#toast{position:absolute;top:82px;left:50%;transform:translateX(-50%);z-index:5;color:#fff;background:#00172be0;border:1px solid #ffffff30;border-radius:12px;padding:9px 13px;font-weight:800;white-space:nowrap;display:none}
+@media(max-width:370px){#hud{font-size:12px;padding:8px 10px}.control{width:52px;height:53px}.pedals button{width:65px;height:53px;font-size:10px}.panel{padding:15px}}
+</style>
+</head>
+<body>
+<div id="hud">SCORE: <span id="score">0</span><br>SPEED: <span id="speed">0</span> km/h<div style="font-size:11px;opacity:.9;margin-top:2px">NITRO</div><div id="nitroWrap"><div id="nitroBar"></div></div></div>
+<div id="topButtons"><button id="menuBtn">🚗 Cars</button><button id="pauseBtn">Ⅱ</button></div>
+<div id="toast">NITRO BOOST!</div>
+<div id="controls">
+ <div class="pad"><button class="control" id="left">◀</button><button class="control" id="right">▶</button></div>
+ <div class="pedals"><button id="brake">BRAKE</button><button id="gas">ACCELERATE</button><button class="nitro" id="nitro">⚡<br>NITRO</button></div>
+</div>
+<div id="overlay"><div class="panel" id="menuPanel"><h1>🏁 3D CAR RACING PRO</h1><p class="sub">Choose your ride and race through the hills</p><div id="carChoices" class="cars"></div><button id="startBtn" class="primary">START RACE ▶</button><p class="sub" style="margin:12px 0 0">Use touch controls • Avoid traffic • Save nitro for overtakes</p></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+if(!window.THREE){$('menuPanel').innerHTML='<h1>Three.js could not load</h1><p>Please connect to the internet and reload this page.</p>';return;}
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x8bd1f4);scene.fog=new THREE.Fog(0x8bd1f4,45,190);
+const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,450);camera.position.set(0,6.5,12);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputEncoding=THREE.sRGBEncoding;document.body.insertBefore(renderer.domElement,document.body.firstChild);
+scene.add(new THREE.HemisphereLight(0xe2f6ff,0x485b36,1.7));const sun=new THREE.DirectionalLight(0xfff3d7,2.1);sun.position.set(-18,30,14);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-30;sun.shadow.camera.right=30;sun.shadow.camera.top=35;sun.shadow.camera.bottom=-35;scene.add(sun);
+const mat=(color,roughness=.8,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
+function box(w,h,d,color,x,y,z,material=null){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material||mat(color));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m;}
+// Endless-feeling valley terrain, road and lane markers
+box(260,.25,500,0x4d9144,0,-.28,-170);box(12,.18,500,0x363b40,0,-.1,-170);box(.18,.06,500,0xf6f2d7,-5.78,.015,-170);box(.18,.06,500,0xf6f2d7,5.78,.015,-170);
+const dashes=[];for(let z=-430;z<25;z+=9)dashes.push(box(.14,.035,3.8,0xf7f3df,0,.015,z));
+// Mountains in distant layers
+for(let i=0;i<26;i++){const x=(i%13-6)*19+(Math.random()-.5)*5,z=-95-Math.floor(i/13)*90-(Math.random()*35);const h=14+Math.random()*24;const m=new THREE.Mesh(new THREE.ConeGeometry(10+Math.random()*8,h,5),mat(i%3===0?0x718d99:0x91a9a5));m.position.set(x,h/2-1,z);m.rotation.y=Math.random()*1.5;scene.add(m);}
+// roadside trees, rocks and shrubs, recycled as road advances
+const scenery=[];
+function makeTree(x,z){const g=new THREE.Group();const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.18,.28,1.8,7),mat(0x75502f));trunk.position.y=.9;g.add(trunk);for(let j=0;j<3;j++){const crown=new THREE.Mesh(new THREE.ConeGeometry(1.25-j*.18,2.1,7),mat(j===0?0x176b3a:0x238346));crown.position.y=1.8+j*.9;g.add(crown);}g.position.set(x,0,z);scene.add(g);scenery.push({obj:g,baseZ:z});}
+function makeRock(x,z){const r=new THREE.Mesh(new THREE.DodecahedronGeometry(.7+Math.random()*.6,0),mat(0x737b78));r.position.set(x,.3,z);r.scale.y=.65;scene.add(r);scenery.push({obj:r,baseZ:z});}
+for(let z=-420;z<18;z+=10){makeTree(-9-Math.random()*7,z-Math.random()*6);makeTree(9+Math.random()*7,z-Math.random()*6);if(Math.random()<.35)makeRock(Math.random()<.5?-7.5:7.5,z-4);}
+// Vehicle builder
+const carColors=[{name:'Racer Red',color:0xe52b37},{name:'Electric Blue',color:0x1679f5},{name:'Sunshine',color:0xffc928},{name:'Emerald',color:0x13b86a},{name:'Pearl White',color:0xe9f0f4},{name:'Midnight',color:0x343b4a}];let selected=0;
+function makeCar(color,isPlayer=false){const g=new THREE.Group();const paint=mat(color,.3,.28);const glass=mat(0x9ad9ed,.2,.15);const tire=mat(0x171a1d,1);const metal=mat(0x9da8b0,.3,.7);
+const body=new THREE.Mesh(new THREE.BoxGeometry(1.55,.52,2.85),paint);body.position.y=.67;body.castShadow=true;g.add(body);
+const hood=new THREE.Mesh(new THREE.BoxGeometry(1.35,.18,.82),paint);hood.position.set(0,.94,.83);g.add(hood);
+const cabin=new THREE.Mesh(new THREE.BoxGeometry(1.08,.65,1.34),glass);cabin.position.set(0,1.18,-.22);g.add(cabin);
+const roof=new THREE.Mesh(new THREE.BoxGeometry(.93,.09,.68),paint);roof.position.set(0,1.53,-.23);g.add(roof);
+for(const x of [-.79,.79])for(const z of [-.91,.91]){const w=new THREE.Mesh(new THREE.CylinderGeometry(.31,.31,.2,14),tire);w.rotation.z=Math.PI/2;w.position.set(x,.37,z);g.add(w);const hub=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,.205,10),metal);hub.rotation.z=Math.PI/2;hub.position.set(x*1.01,.37,z);g.add(hub);}
+for(const x of [-.48,.48]){const lamp=new THREE.Mesh(new THREE.BoxGeometry(.28,.13,.06),new THREE.MeshStandardMaterial({color:0xfff3cb,emissive:0xffbb55,emissiveIntensity:.65}));lamp.position.set(x,.75,1.46);g.add(lamp);const tail=new THREE.Mesh(new THREE.BoxGeometry(.24,.13,.06),mat(0xff1d1d));tail.position.set(x,.72,-1.46);g.add(tail);}
+if(isPlayer){const flame=new THREE.Mesh(new THREE.ConeGeometry(.24,.9,10),new THREE.MeshBasicMaterial({color:0x00dfff}));flame.rotation.x=-Math.PI/2;flame.position.set(0,.52,-1.95);flame.visible=false;g.add(flame);g.userData.flame=flame;}
+return g;}
+let player=makeCar(carColors[selected].color,true);player.position.set(0,0,3);scene.add(player);
+const traffic=[];const lanes=[-3.6,0,3.6];
+function spawnTraffic(){const car=makeCar([0xf34c3e,0xffb21c,0x20a4e8,0xf2f3f5,0x7d54ca][Math.floor(Math.random()*5)].valueOf());car.position.set(lanes[Math.floor(Math.random()*3)],0,-100-Math.random()*35);car.rotation.y=Math.PI;scene.add(car);traffic.push({obj:car,passed:false});}
+// Car selection panel
+const choices=$('carChoices');carColors.forEach((c,i)=>{const b=document.createElement('button');b.className='carOption'+(i===selected?' selected':'');b.innerHTML='<div class="swatch" style="background:#'+c.color.toString(16).padStart(6,'0')+'"></div><small>'+c.name+'</small>';b.onclick=()=>{selected=i;[...choices.children].forEach((el,j)=>el.classList.toggle('selected',j===i));if(!running){scene.remove(player);player=makeCar(carColors[selected].color,true);player.position.set(0,0,3);scene.add(player);}};choices.appendChild(b);});
+let running=false,paused=false,gameOver=false,score=0,speed=28,nitro=100,nitroOn=false,spawn=0,steer=0,gas=false,brake=false,lastTime=0,toastTimer=0;
+function showMenu(){running=false;paused=false;$('overlay').classList.remove('hidden');$('menuPanel').querySelector('h1').textContent='🏁 3D CAR RACING PRO';$('startBtn').textContent=gameOver?'RACE AGAIN ▶':'START RACE ▶';$('pauseBtn').textContent='Ⅱ';}
+function reset(){traffic.forEach(t=>scene.remove(t.obj));traffic.length=0;score=0;speed=28;nitro=100;spawn=0;steer=0;gas=false;brake=false;nitroOn=false;paused=false;gameOver=false;running=true;player.position.set(0,0,3);player.rotation.set(0,0,0);$('overlay').classList.add('hidden');$('toast').style.display='none';}
+$('startBtn').addEventListener('click',()=>{if(gameOver){scene.remove(player);player=makeCar(carColors[selected].color,true);player.position.set(0,0,3);scene.add(player);}reset();});$('menuBtn').onclick=()=>{paused=false;showMenu();};$('pauseBtn').onclick=()=>{if(!running||gameOver)return;paused=!paused;$('pauseBtn').textContent=paused?'▶':'Ⅱ';if(paused){$('overlay').classList.remove('hidden');$('menuPanel').querySelector('h1').textContent='⏸ GAME PAUSED';$('startBtn').textContent='RESUME RACE ▶';}else $('overlay').classList.add('hidden');};$('startBtn').addEventListener('click',()=>{if(paused&&!gameOver){paused=false;running=true;$('overlay').classList.add('hidden');}});
+function bindHold(id,down,up){const el=$(id);el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture?.(e.pointerId);down();});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>el.addEventListener(ev,e=>{up();}));}
+bindHold('left',()=>steer=-1,()=>{if(steer===-1)steer=0;});bindHold('right',()=>steer=1,()=>{if(steer===1)steer=0;});bindHold('gas',()=>gas=true,()=>gas=false);bindHold('brake',()=>brake=true,()=>brake=false);bindHold('nitro',()=>{if(nitro>0&&!nitroOn){nitroOn=true;$('toast').style.display='block';toastTimer=1.1;}},()=>nitroOn=false);
+addEventListener('keydown',e=>{if(['ArrowLeft','a','A'].includes(e.key))steer=-1;if(['ArrowRight','d','D'].includes(e.key))steer=1;if(['ArrowUp','w','W'].includes(e.key))gas=true;if(['ArrowDown','s','S'].includes(e.key))brake=true;if(e.code==='Space'&&nitro>0)nitroOn=true;if(e.key==='Escape')$('pauseBtn').click();});addEventListener('keyup',e=>{if(['ArrowLeft','ArrowRight','a','A','d','D'].includes(e.key))steer=0;if(['ArrowUp','w','W'].includes(e.key))gas=false;if(['ArrowDown','s','S'].includes(e.key))brake=false;if(e.code==='Space')nitroOn=false;});
+function endGame(){running=false;gameOver=true;nitroOn=false;player.userData.flame.visible=false;$('overlay').classList.remove('hidden');$('menuPanel').querySelector('h1').textContent='💥 RACE OVER';$('menuPanel').querySelector('.sub').textContent='Final score: '+Math.floor(score)+' • Choose a car and try again';$('startBtn').textContent='RACE AGAIN ▶';}
+function animate(now){requestAnimationFrame(animate);const dt=Math.min(((now-lastTime)||16)/1000,.04);lastTime=now;
+if(running&&!paused&&!gameOver){const boost=nitroOn&&nitro>0;speed+=gas?16*dt:-4*dt;if(brake)speed-=28*dt;if(boost){speed+=34*dt;nitro=Math.max(0,nitro-34*dt);}else nitro=Math.min(100,nitro+7*dt);speed=Math.max(0,Math.min(speed,boost?155:105));
+player.position.x+=steer*(7.5+speed*.025)*dt;player.position.x=Math.max(-4.35,Math.min(4.35,player.position.x));player.rotation.z+=( -steer*.095-player.rotation.z)*Math.min(1,dt*7);player.userData.flame.visible=boost;player.userData.flame.scale.setScalar(.7+Math.random()*.65);
+const worldMove=speed*dt;dashes.forEach(d=>{d.position.z+=worldMove;if(d.position.z>12)d.position.z-=459;});scenery.forEach(s=>{s.obj.position.z+=worldMove;if(s.obj.position.z>18)s.obj.position.z-=445;});
+spawn+=dt;if(spawn>Math.max(.62,1.65-speed/145)){spawnTraffic();spawn=0;}
+for(let i=traffic.length-1;i>=0;i--){const t=traffic[i],c=t.obj;c.position.z+=worldMove*.9;if(Math.abs(c.position.x-player.position.x)<1.35&&Math.abs(c.position.z-player.position.z)<2.05){endGame();break;}if(c.position.z>12){scene.remove(c);traffic.splice(i,1);score+=15;}}
+score+=dt*(speed/12);if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)$('toast').style.display='none';}
+$('score').textContent=Math.floor(score);$('speed').textContent=Math.floor(speed*(boost?1.45:1.25));$('nitroBar').style.width=nitro+'%';
+}
+camera.position.x+=(player.position.x*.34-camera.position.x)*Math.min(1,dt*2.5);camera.position.y+=(6.3+(speed/100)*.8-camera.position.y)*Math.min(1,dt*2);camera.lookAt(player.position.x*.25,1,-8);renderer.render(scene,camera);}
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));});
+// Avoid browser gesture zoom while driving
+ document.addEventListener('contextmenu',e=>e.preventDefault());
+animate(performance.now());
+})();
+</script>
+</body>
+</html>
