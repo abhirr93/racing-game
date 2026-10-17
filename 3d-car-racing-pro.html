@@ -319,43 +319,7 @@ g.traverse(function(object) {
 });
 return g;
 }
-
-function updateCarName() {
-  document.getElementById('carName').textContent =
-    carColors[selected].name;
-}
-
-function changeCar(direction) {
-  if (running && !gameOver) return;
-
-  selected =
-    (selected + direction + carColors.length) %
-    carColors.length;
-
-  const oldPlayer = player;
-  const oldPosition = oldPlayer.position.clone();
-  const oldRotation = oldPlayer.rotation.clone();
-
-  scene.remove(oldPlayer);
-
-  player = makeCar(carColors[selected].color, true);
-  player.position.copy(oldPosition);
-  player.rotation.copy(oldRotation);
-
-  scene.add(player);
-  updateCarName();
-}
-
-document.getElementById('prevCar').addEventListener('click', () => {
-  changeCar(-1);
-});
-
-document.getElementById('nextCar').addEventListener('click', () => {
-  changeCar(1);
-});
-
-updateCarName();
-                                                    
+ 
 let player=makeCar(carColors[selected].color,true);
  
  player.position.set(0,0,3);scene.add(player);
