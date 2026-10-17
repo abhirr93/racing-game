@@ -36,6 +36,25 @@ canvas{display:block;width:100%;height:100%}
 const $=id=>document.getElementById(id);
 if(!window.THREE){$('menuPanel').innerHTML='<h1>Three.js could not load</h1><p>Please connect to the internet and reload this page.</p>';return;}
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x8bd1f4);scene.fog=new THREE.Fog(0x8bd1f4,45,190);
+ 
+/* Enhanced 3D Lighting */
+const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+scene.add(ambientLight);
+
+const sunLight = new THREE.DirectionalLight(0xffffff, 2.2);
+sunLight.position.set(-30, 50, 25);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.width = 1024;
+sunLight.shadow.mapSize.height = 1024;
+sunLight.shadow.camera.near = 1;
+sunLight.shadow.camera.far = 150;
+sunLight.shadow.camera.left = -60;
+sunLight.shadow.camera.right = 60;
+sunLight.shadow.camera.top = 60;
+sunLight.shadow.camera.bottom = -60;
+sunLight.shadow.bias = -0.0005;
+scene.add(sunLight);
+
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,450);camera.position.set(0,6.5,12);
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputEncoding=THREE.sRGBEncoding;document.body.insertBefore(renderer.domElement,document.body.firstChild);
 scene.add(new THREE.HemisphereLight(0xe2f6ff,0x485b36,1.7));const sun=new THREE.DirectionalLight(0xfff3d7,2.1);sun.position.set(-18,30,14);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-30;sun.shadow.camera.right=30;sun.shadow.camera.top=35;sun.shadow.camera.bottom=-35;scene.add(sun);
