@@ -259,7 +259,7 @@ for (const wheelGroup of wheelMeshes) {
                                        
 g.userData.wheels = wheelMeshes;
                                        
-for(const x of [-.48,.48]){const lamp=new THREE.Mesh(new THREE.BoxGeometry(.28,.13,.06),new THREE.MeshStandardMaterial({color:0xfff3cb,emissive:0xffbb55,emissiveIntensity:.65}));lamp.position.set(x,.75,1.46);g.add(lamp);const tail=new THREE.Mesh(new THREE.BoxGeometry(.24,.13,.06),mat(0xff1d1d));
+for(const x of [-.48,.48]){const lamp=new THREE.Mesh(new THREE.BoxGeometry(.28,.13,.06),new THREE.MeshStandardMaterial({color:0xfff3cb,emissive:0xffbb55,emissiveIntensity:.65}));lamp.position.set(x,.75,1.46);g.add(lamp);
 const tail=new THREE.Mesh(
   new THREE.BoxGeometry(.24,.13,.06),
   new THREE.MeshStandardMaterial({
@@ -320,6 +320,42 @@ g.traverse(function(object) {
 return g;
 }
 
+function updateCarName() {
+  document.getElementById('carName').textContent =
+    carColors[selected].name;
+}
+
+function changeCar(direction) {
+  if (running && !gameOver) return;
+
+  selected =
+    (selected + direction + carColors.length) %
+    carColors.length;
+
+  const oldPlayer = player;
+  const oldPosition = oldPlayer.position.clone();
+  const oldRotation = oldPlayer.rotation.clone();
+
+  scene.remove(oldPlayer);
+
+  player = makeCar(carColors[selected].color, true);
+  player.position.copy(oldPosition);
+  player.rotation.copy(oldRotation);
+
+  scene.add(player);
+  updateCarName();
+}
+
+document.getElementById('prevCar').addEventListener('click', () => {
+  changeCar(-1);
+});
+
+document.getElementById('nextCar').addEventListener('click', () => {
+  changeCar(1);
+});
+
+updateCarName();
+                                                    
 let player=makeCar(carColors[selected].color,true);
  
  player.position.set(0,0,3);scene.add(player);
@@ -426,5 +462,27 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 animate(performance.now());
 })();
 </script>
+ 
+<div id="carSelector" style="
+  position:fixed;
+  top:15px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:9999;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 14px;
+  background:rgba(0,0,0,0.78);
+  border:1px solid #5ce1ff;
+  border-radius:14px;
+  color:white;
+  font-family:Arial,sans-serif;
+">
+  <button id="prevCar" style="padding:10px;border-radius:8px;">◀</button>
+  <span id="carName" style="min-width:110px;text-align:center;font-weight:bold;">Racer Red</span>
+  <button id="nextCar" style="padding:10px;border-radius:8px;">▶</button>
+</div>
+ 
 </body>
 </html>
