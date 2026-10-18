@@ -33,8 +33,80 @@ canvas{display:block;width:100%;height:100%}
 <script>
 (()=>{
 'use strict';
-const $=id=>document.getElementById(id);
-if(!window.THREE){$('menuPanel').innerHTML='<h1>Three.js could not load</h1><p>Please connect to the internet and reload this page.</p>';return;}
+const $=id=>document.getElementById(id); // 🔊 SIMPLE GAME SOUND SYSTEM
+let audioCtx = null;
+let engineOsc = null;
+let engineGain = null;
+
+function initAudio() {
+  if (!audioCtx) {
+    const AudioContextClass =
+      window.AudioContext || window.webkitAudioContext;
+
+    if (!AudioContextClass) return;
+
+    audioCtx = new AudioContextClass();
+
+    engineOsc = audioCtx.createOscillator();
+    engineGain = audioCtx.createGain();
+
+    engineOsc.type = 'sawtooth';
+    engineOsc.frequency.value = 65;
+    engineGain.gain.value = 0;
+
+    engineOsc.connect(engineGain);
+    engineGain.connect(audioCtx.destination);
+    engineOsc.start();
+  }
+
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+function updateEngineSound(speed) {
+  if (!audioCtx || !engineOsc || !engineGain) return;
+
+  const now = audioCtx.currentTime;
+  engineOsc.frequency.setTargetAtTime(
+    55 + Math.abs(speed) * 18,
+    now,
+    0.08
+  );
+
+  engineGain.gain.setTargetAtTime(
+    running && !paused && !gameOver ? 0.025 : 0,
+    now,
+    0.08
+  );
+}
+
+function playEffect(frequency, duration, volume) {
+  if (!audioCtx || audioCtx.state !== 'running') return;
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  const now = audioCtx.currentTime;
+
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(frequency, now);
+  osc.frequency.exponentialRampToValueAtTime(
+    Math.max(40, frequency * 0.45),
+    now + duration
+  );
+
+  gain.gain.setValueAtTime(volume, now);
+  gain.gain.exponentialRampToValueAtTime(
+    0.001,
+    now + duration
+  );
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start(now);
+  osc.stop(now + duration);
+ }
+if(!window.THREE){$('menuPanel').innerHTM L='<h1>Three.js could not load</h1><p>Please connect to the internet and reload this page.</p>';return;}
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x8bd1f4);scene.fog=new THREE.Fog(0x8bd1f4,45,190);
  
 /* Enhanced 3D Lighting */
@@ -381,7 +453,17 @@ bindHold('left',()=>steer=-1,()=>{if(steer===-1)steer=0;});bindHold('right',()=>
 addEventListener('keydown',e=>{if(['ArrowLeft','a','A'].includes(e.key))steer=-1;if(['ArrowRight','d','D'].includes(e.key))steer=1;if(['ArrowUp','w','W'].includes(e.key))gas=true;if(['ArrowDown','s','S'].includes(e.key))brake=true;if(e.code==='Space'&&nitro>0)nitroOn=true;if(e.key==='Escape')$('pauseBtn').click();});addEventListener('keyup',e=>{if(['ArrowLeft','ArrowRight','a','A','d','D'].includes(e.key))steer=0;if(['ArrowUp','w','W'].includes(e.key))gas=false;if(['ArrowDown','s','S'].includes(e.key))brake=false;if(e.code==='Space')nitroOn=false;});
 function endGame(){running=false;gameOver=true;nitroOn=false;player.userData.flame.visible=false;$('overlay').classList.remove('hidden');$('menuPanel').querySelector('h1').textContent='💥 RACE OVER';$('menuPanel').querySelector('.sub').textContent='Final score: '+Math.floor(score)+' • Choose a car and try again';$('startBtn').textContent='RACE AGAIN ▶';}
 function animate(now){requestAnimationFrame(animate);const dt=Math.min(((now-lastTime)||16)/1000,.04);lastTime=now;
-if(running&&!paused&&!gameOver){const boost=nitroOn&&nitro>0;speed+=gas?16*dt:-4*dt;if(brake)speed-=28*dt;if(boost){speed+=34*dt;nitro=Math.max(0,nitro-34*dt);}else nitro=Math.min(100,nitro+7*dt);speed=Math.max(0,Math.min(speed,boost?155:105));
+if(running&&!paused&&!gameOver){const boost=nitroOn&&nitro>0; updateEngineSound(speed); speed+=gas?16*dt:-4*dt;if(brake)speed-=28*dt; if(boost){
+  speed+=34*dt;
+  nitro=Math.max(0,nitro-34*dt);
+  if(!nitroSoundPlaying){
+    playEffect(180,0.35,0.08);
+    nitroSoundPlaying=true;
+  }
+}else{
+  nitroSoundPlaying=false;
+  nitro=Math.min(100,nitro+7*dt);
+} else nitro=Math.min(100,nitro+7*dt);speed=Math.max(0,Math.min(speed,boost?155:105));
 player.position.x+=steer*(7.5+speed*.025)*dt; rotateCarWheels(player, speed, dt); player.position.x=Math.max(-4.35,Math.min(4.35,player.position.x));player.rotation.z+=( -steer*.095-player.rotation.z)*Math.min(1,dt*7);player.userData.flame.visible=boost;
 if (player.userData.outerFlame) {
   player.userData.outerFlame.visible = boost;
