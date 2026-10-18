@@ -1,3 +1,9 @@
+<head>
+  <meta charset="UTF-8">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#101820">
+  <title>3D Car Racing Pro</title>
+</head>
 {
   "name": "3D Car Racing Pro",
   "short_name": "Car Racing",
