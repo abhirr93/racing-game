@@ -22,19 +22,54 @@ canvas{display:block;width:100%;height:100%}
 </head>
 <body>
 <div id="hud">SCORE: <span id="score">0</span><br>SPEED: <span id="speed">0</span> km/h<div style="font-size:11px;opacity:.9;margin-top:2px">NITRO</div><div id="nitroWrap"><div id="nitroBar"></div></div></div>
-<div id="topButtons"><button id="menuBtn">🚗 Cars</button><button id="pauseBtn">Ⅱ</button></div>
+<div id="topButtons">
+  <div id="levelDisplay">🏆 LEVEL: <span id="level">1</span></div>
+  <button id="menuBtn">🚗 Cars</button>
+  <button id="settingsBtn">⚙️</button>
+<button id="pauseBtn">Ⅱ</button>
+</div>
 <div id="toast">NITRO BOOST!</div>
 <div id="controls">
  <div class="pad"><button class="control" id="left">◀</button><button class="control" id="right">▶</button></div>
  <div class="pedals"><button id="brake">BRAKE</button><button id="gas">ACCELERATE</button><button class="nitro" id="nitro">⚡<br>NITRO</button></div>
 </div>
-<div id="overlay"><div class="panel" id="menuPanel"><h1>🏁 3D CAR RACING PRO</h1><p class="sub">Choose your ride and race through the hills</p><div id="carChoices" class="cars"></div><button id="startBtn" class="primary">START RACE ▶</button><p class="sub" style="margin:12px 0 0">Use touch controls • Avoid traffic • Save nitro for overtakes</p></div></div>
+<div id="overlay"><div class="panel" id="menuPanel"><h1>🏁 3D CAR RACING PRO</h1><p class="sub">Choose your ride and race through the hills</p><div id="carChoices" class="cars"></div><button id="startBtn" class="primary">START RACE ▶</button><p class="sub" style="margin:12px 0 0">Use touch controls • Avoid traffic • Save nitro for overtakes</p> <div id="settingsPanel" style="display:none;">
+  <h2>⚙️ SETTINGS</h2>
+
+  <label>
+    Sound
+    <input type="checkbox" id="soundToggle" checked>
+  </label>
+
+  <label>
+    Volume
+    <input type="range" id="volumeControl"
+           min="0" max="100" value="50">
+  </label>
+
+  <label>Difficulty</label>
+  <select id="difficulty">
+    <option value="easy">Easy</option>
+    <option value="medium" selected>Medium</option>
+    <option value="hard">Hard</option>
+  </select>
+
+  <button id="closeSettings">CLOSE</button>
+</div>  </div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 (()=>{
 'use strict';
 const $=id=>document.getElementById(id); // 🔊 SIMPLE GAME SOUND SYSTEM
-let audioCtx = null;
+// ⚙️ SETTINGS BUTTON
+$('settingsBtn').addEventListener('click',()=>{
+  $('settingsPanel').style.display='block';
+});
+
+$('closeSettings').addEventListener('click',()=>{
+  $('settingsPanel').style.display='none';
+});
+ let audioCtx = null;
 let engineOsc = null;
 let engineGain = null;
 
@@ -447,7 +482,7 @@ const choices=$('carChoices');carColors.forEach((c,i)=>{const b=document.createE
 let running=false,paused=false,gameOver=false,score=0,speed=28,nitro=100,nitroOn=false,spawn=0,steer=0,gas=false,brake=false,lastTime=0,toastTimer=0;
 function showMenu(){running=false;paused=false;$('overlay').classList.remove('hidden');$('menuPanel').querySelector('h1').textContent='🏁 3D CAR RACING PRO';$('startBtn').textContent=gameOver?'RACE AGAIN ▶':'START RACE ▶';$('pauseBtn').textContent='Ⅱ';}
 function reset(){traffic.forEach(t=>scene.remove(t.obj));traffic.length=0;score=0;speed=28;nitro=100;spawn=0;steer=0;gas=false;brake=false;nitroOn=false;paused=false;gameOver=false;running=true;player.position.set(0,0,3);player.rotation.set(0,0,0);$('overlay').classList.add('hidden');$('toast').style.display='none';}
-$('startBtn').addEventListener('click',()=>{if(gameOver){scene.remove(player);player=makeCar(carColors[selected].color,true);player.position.set(0,0,3);scene.add(player);}reset();});$('menuBtn').onclick=()=>{paused=false;showMenu();};$('pauseBtn').onclick=()=>{if(!running||gameOver)return;paused=!paused;$('pauseBtn').textContent=paused?'▶':'Ⅱ';if(paused){$('overlay').classList.remove('hidden');$('menuPanel').querySelector('h1').textContent='⏸ GAME PAUSED';$('startBtn').textContent='RESUME RACE ▶';}else $('overlay').classList.add('hidden');};$('startBtn').addEventListener('click',()=>{if(paused&&!gameOver){paused=false;running=true;$('overlay').classList.add('hidden');}});
+if(gameOver){scene.remove(player);player=makeCar(carColors[selected].color,true);player.position.set(0,0,3);scene.add(player);}reset();});$('menuBtn').onclick=()=>{paused=false;showMenu();};$('pauseBtn').onclick=()=>{if(!running||gameOver)return;paused=!paused;$('pauseBtn').textContent=paused?'▶':'Ⅱ';if(paused){$('overlay').classList.remove('hidden');$('menuPanel').querySelector('h1').textContent='⏸ GAME PAUSED';$('startBtn').textContent='RESUME RACE ▶';}else $('overlay').classList.add('hidden');};$('startBtn').addEventListener('click',()=>{if(paused&&!gameOver){paused=false;running=true;$('overlay').classList.add('hidden');}});
 function bindHold(id,down,up){const el=$(id);el.addEventListener('pointerdown',e=>{e.preventDefault();el.setPointerCapture?.(e.pointerId);down();});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>el.addEventListener(ev,e=>{up();}));}
 bindHold('left',()=>steer=-1,()=>{if(steer===-1)steer=0;});bindHold('right',()=>steer=1,()=>{if(steer===1)steer=0;});bindHold('gas',()=>gas=true,()=>gas=false);bindHold('brake',()=>brake=true,()=>brake=false);bindHold('nitro',()=>{if(nitro>0&&!nitroOn){nitroOn=true;$('toast').style.display='block';toastTimer=1.1;}},()=>nitroOn=false);
 addEventListener('keydown',e=>{if(['ArrowLeft','a','A'].includes(e.key))steer=-1;if(['ArrowRight','d','D'].includes(e.key))steer=1;if(['ArrowUp','w','W'].includes(e.key))gas=true;if(['ArrowDown','s','S'].includes(e.key))brake=true;if(e.code==='Space'&&nitro>0)nitroOn=true;if(e.key==='Escape')$('pauseBtn').click();});addEventListener('keyup',e=>{if(['ArrowLeft','ArrowRight','a','A','d','D'].includes(e.key))steer=0;if(['ArrowUp','w','W'].includes(e.key))gas=false;if(['ArrowDown','s','S'].includes(e.key))brake=false;if(e.code==='Space')nitroOn=false;});
@@ -492,7 +527,11 @@ for (const line of speedLines) {
 spawn+=dt;if(spawn>Math.max(.62,1.65-speed/145)){spawnTraffic();spawn=0;}
 for(let i=traffic.length-1;i>=0;i--){const t=traffic[i],c=t.obj;c.position.z+=worldMove*.9;if(Math.abs(c.position.x-player.position.x)<1.35&&Math.abs(c.position.z-player.position.z)<2.05){endGame();break;}if(c.position.z>12){scene.remove(c);traffic.splice(i,1);score+=15;}}
 score+=dt*(speed/12);if(toastTimer>0){toastTimer-=dt;if(toastTimer<=0)$('toast').style.display='none';}
-$('score').textContent=Math.floor(score);$('speed').textContent=Math.floor(speed*(boost?1.45:1.25));$('nitroBar').style.width=nitro+'%';
+$('score').textContent=Math.floor(score); $('level').textContent = Math.floor(score / 500) + 1; const level = Math.floor(score / 500) + 1;
+$('level').textContent = level; const level = Math.floor(score / 500) + 1;
+if ($('level')) {
+  $('level').textContent = level;
+} $('speed').textContent=Math.floor(speed*(boost?1.45:1.25));$('nitroBar').style.width=nitro+'%';
 }
 camera.position.x+=(player.position.x*.34-camera.position.x)*Math.min(1,dt*2.5);camera.position.y+=(6.3+(speed/100)*.8-camera.position.y)*Math.min(1,dt*2);camera.lookAt(player.position.x*.25,1,-8);
 const shake = nitroOn && nitro > 0 && running && !paused && !gameOver
