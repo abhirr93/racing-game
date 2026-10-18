@@ -565,9 +565,18 @@ animate(performance.now());
   font-family:Arial,sans-serif;
 ">
   <button id="prevCar" style="padding:10px;border-radius:8px;">◀</button>
-  <span id="carName" style="min-width:110px;text-align:center;font-weight:bold;">Racer Red</span>
+  <span id="carName" style="min$('score').textContent=Math.floor(score); $('level').textContent = Math.floor(score / 500) + 1; const level = Math.floor(score / 500) + 1;-width:110px;text-align:center;font-weight:bold;">Racer Red</span>
   <button id="nextCar" style="padding:10px;border-radius:8px;">▶</button>
 </div>
- 
+ <script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js")
+      .catch(error => console.error(
+        "Service Worker error:", error
+      ));
+  });
+}
+ </script>
 </body>
 </html>
